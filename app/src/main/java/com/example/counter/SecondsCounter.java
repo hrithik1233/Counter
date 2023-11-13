@@ -6,11 +6,11 @@ import android.os.Looper;
 
 
 interface SecondsCounterInterface {
-    void updateTimeFormatSecondsCounter(long hr, long min, long sec);
+    void updateTimeFormatSecondsCounter(long hour, long minute, long second);
 
-    void updateStringFormatSecondsCounter(String timmeStamp);
+    void updateStringFormatSecondsCounter(String timeStamp);
 
-    void updateTotalSecondsSecondsCounter(long totalSeondsCounter);
+    void totalSecondsCounter(long totalSeconds);
 
 
 }
@@ -69,7 +69,7 @@ public class SecondsCounter {
                             if (counterInterface != null && callinterface) {
                                 counterInterface.updateStringFormatSecondsCounter(getToStringFormat());
                                 counterInterface.updateTimeFormatSecondsCounter(hr, min, sec);
-                                counterInterface.updateTotalSecondsSecondsCounter(getTotalSeconds());
+                                counterInterface.totalSecondsCounter(getTotalSeconds());
                             }
                         });
 
@@ -89,6 +89,7 @@ public class SecondsCounter {
     }
 
     public void pause() {
+
         ispause = true;
         iscounting = false;
 
@@ -105,7 +106,7 @@ public class SecondsCounter {
         if (counterInterface != null) {
             counterInterface.updateStringFormatSecondsCounter(getToStringFormat());
             counterInterface.updateTimeFormatSecondsCounter(hr, min, sec);
-            counterInterface.updateTotalSecondsSecondsCounter(getTotalSeconds());
+            counterInterface.totalSecondsCounter(getTotalSeconds());
         }
 
         hr = min = sec = 0;
