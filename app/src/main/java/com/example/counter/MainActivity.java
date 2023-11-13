@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
@@ -17,6 +18,7 @@ import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -46,7 +48,8 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
     long recordstartTime=0;
     private MediaPlayer mediaPlayer;
 
-
+    RecyclerAdapter adapter;
+    RecyclerView recyclerView;
     ArrayList<byte[]>list;
     @SuppressLint({"MissingInflatedId", "ClickableViewAccessibility"})
     @Override
@@ -54,7 +57,10 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         start=findViewById(R.id.pause);
+        list=new ArrayList<>();
+
         audioFilePath = getPathTostorage();
+        recyclerView=findViewById(R.id.recyclerview);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
@@ -64,6 +70,11 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
            setupMediaRecorder(audioFilePath);
         }
 
+      adapter=new RecyclerAdapter(list,this);
+
+        recyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        fetchdata();
 
 
         start.setOnTouchListener((v, event) -> {
@@ -73,8 +84,8 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
                     return true;
 
                 case MotionEvent.ACTION_UP:
-
-                stoprecording();
+               new Handler().postDelayed(this::stoprecording,1000);
+                runOnUiThread(() -> start.setText("start"));
                     return true;
 
                 default:
@@ -94,17 +105,18 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
 
                     mediaRecorder.stop();
                     mediaRecorder.reset();
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            start.setText("start");
-                        }
+                    runOnUiThread(() -> {
+
+                        saveRecording();
+                        fetchdata();
+                        audioFilePath=getPathTostorage();
+                        setupMediaRecorder(audioFilePath);
                     });
-                    saveRecording();
-                   audioFilePath=getPathTostorage();
-                    setupMediaRecorder(audioFilePath);
+
+
                 }
-            }catch (Exception e){}
+            }catch (Exception e){
+            }
 
         });
     }
@@ -118,9 +130,15 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
     }
 
 
+    @SuppressLint("NotifyDataSetChanged")
     public void fetchdata() {
         DatabaseHelper db=new DatabaseHelper(this);
-       list=db.getRecordingData();
+        list=db.getRecordingData();
+        Toast.makeText(this, ""+list.size(), Toast.LENGTH_SHORT).show();
+        adapter=new RecyclerAdapter(list,this);
+
+        recyclerView.setAdapter(adapter);
+        Toast.makeText(this, ""+adapter.getItemCount(), Toast.LENGTH_SHORT).show();
     }
 
     private void startrecording() {
@@ -149,15 +167,23 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
 
             try {
                 File tempAudioFile = null;
-                    tempAudioFile = File.createTempFile("temp_audio", ".mp3", getCacheDir());
+                    tempAudioFile = File.createTempFile("audio", ".mp3", getCacheDir());
                     tempAudioFile.deleteOnExit();
                     File finalTempAudioFile = tempAudioFile;
                      FileOutputStream fos = new FileOutputStream(finalTempAudioFile);
+
                             fos.write(list.get(pos));
+                            mediaPlayer=new MediaPlayer();
                             mediaPlayer.reset();
                             mediaPlayer.setDataSource(finalTempAudioFile.getAbsolutePath());
                             mediaPlayer.prepare();
-                            mediaPlayer.start();
+                            mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                                @Override
+                                public void onPrepared(MediaPlayer mp) {
+                                    mp.start();
+                                }
+                            });
+
 
                 mediaPlayer.setOnCompletionListener(mp -> {
                     mediaPlayer.release();
@@ -230,9 +256,10 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
 
     @Override
     public void onclickcall(int pos) {
+        Toast.makeText(this, "sdf"+pos, Toast.LENGTH_SHORT).show();
+        playrecord( list.size()-1);
 
     }
-
 }
 
 class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyviewHolder>{
@@ -240,6 +267,7 @@ class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyviewHolder>
      ArrayList<byte[]>list;
      Methodcall methodcall;
      RecyclerAdapter(ArrayList<byte[]> bt,Methodcall call){
+
          this.list=bt;
          methodcall=call;
      }
@@ -254,11 +282,12 @@ class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyviewHolder>
     @SuppressLint("SetTextI18n")
     @Override
     public void onBindViewHolder(@NonNull RecyclerAdapter.MyviewHolder holder, int position) {
-         holder.txt.setText(""+(Math.random()*1000));
+         holder.txt.setText(Integer.toString(position+1));
     }
 
     @Override
     public int getItemCount() {
+       Log.i("error",""+list.size());
         return list.size();
     }
 
@@ -272,9 +301,11 @@ class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyviewHolder>
 
             int pos=getAdapterPosition();
             img.setOnClickListener(v -> {
-                if(pos!=RecyclerView.NO_POSITION){
-                    methodcall.onclickcall(pos);
-                }
+
+                     methodcall.onclickcall(pos);
+
+
+
             });
 
         }
@@ -283,4 +314,5 @@ class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyviewHolder>
 }
 interface Methodcall{
     void onclickcall(int pos);
+
 }
