@@ -14,6 +14,7 @@ import android.annotation.SuppressLint;
 import android.content.ContextWrapper;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.media.AudioRecord;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
@@ -84,7 +85,7 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
                     return true;
 
                 case MotionEvent.ACTION_UP:
-               new Handler().postDelayed(this::stoprecording,1000);
+                    stoprecording();
                 runOnUiThread(() -> start.setText("start"));
                     return true;
 
@@ -101,19 +102,16 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
     private void stoprecording() {
         executer.execute(() -> {
             try {
-                if(mediaRecorder!=null){
 
+                if(mediaRecorder!=null){
                     mediaRecorder.stop();
                     mediaRecorder.reset();
                     runOnUiThread(() -> {
-
                         saveRecording();
                         fetchdata();
                         audioFilePath=getPathTostorage();
                         setupMediaRecorder(audioFilePath);
                     });
-
-
                 }
             }catch (Exception e){
             }
@@ -144,9 +142,8 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
     private void startrecording() {
         executer.execute(() -> {
             try {
-                mediaRecorder.setOutputFile(audioFilePath);
-                mediaRecorder.prepare();
 
+                mediaRecorder.prepare();
                 mediaRecorder.start();
                 runOnUiThread(new Runnable() {
                     @Override
@@ -256,9 +253,15 @@ public class MainActivity extends AppCompatActivity  implements Methodcall {
 
     @Override
     public void onclickcall(int pos) {
-        Toast.makeText(this, "sdf"+pos, Toast.LENGTH_SHORT).show();
+
         playrecord( list.size()-1);
 
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+   executer.shutdown();
     }
 }
 
